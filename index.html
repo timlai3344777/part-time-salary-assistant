@@ -1,0 +1,3565 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>打工薪資小幫手｜兼職排班與即時薪資計算</title>
+  <meta name="description" content="專為兼職工作者設計的響應式排班與薪資計算工具，支援多份工作管理、跨日班次、分鐘級精準計薪與本機備份。" />
+  <style>
+:root {
+  --bg-cream: #FFFDF7;
+  --bg-warm: #FAF5E8;
+  --bg-card: #FFFFFF;
+  --bg-subtle: #F5EFE2;
+  --text-main: #2B2623;
+  --text-secondary: #5C534C;
+  --text-muted: #857B72;
+  --border-soft: #E8DEC8;
+  --border-focus: #E07A5F;
+
+  --primary: #E07A5F;
+  --primary-hover: #C96449;
+  --primary-light: #FFF0EB;
+  --secondary: #3D5A80;
+  --accent-sage: #4D8B74;
+  --accent-amber: #D98A2B;
+  --danger: #D14949;
+  --danger-light: #FDECEC;
+
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+
+  --shadow-sm: 0 2px 8px rgba(43, 38, 35, 0.05);
+  --shadow-md: 0 8px 24px rgba(43, 38, 35, 0.08);
+  --shadow-lg: 0 14px 36px rgba(43, 38, 35, 0.14);
+
+  --transition-fast: 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-normal: 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  background-color: var(--bg-cream);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  /* 預留底部空間，避免右下角或底部固定薪資摘要遮擋內容與操作按鈕 */
+  padding-bottom: 240px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -60px;
+  left: 16px;
+  background: var(--primary);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  z-index: 9999;
+  text-decoration: none;
+  font-weight: 600;
+}
+.skip-link:focus {
+  top: 12px;
+}
+
+/* 導覽列 */
+.app-header {
+  background: rgba(255, 253, 247, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border-soft);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.header-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.app-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: 0.01em;
+}
+
+.app-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 按鈕與通用元件 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 0.94rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: transform var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+  font-family: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:focus-visible,
+.btn-icon:focus-visible,
+.form-input:focus-visible,
+.form-select:focus-visible,
+.calendar-day:focus-visible,
+.color-swatch:focus-visible {
+  outline: 3px solid rgba(224, 122, 95, 0.45);
+  outline-offset: 2px;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: #FFFFFF;
+  box-shadow: 0 3px 10px rgba(224, 122, 95, 0.25);
+}
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--bg-warm);
+  color: var(--text-main);
+  border-color: var(--border-soft);
+}
+.btn-secondary:hover {
+  background-color: #F3EAD6;
+}
+
+.btn-outline {
+  background-color: var(--bg-card);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.btn-outline:hover {
+  background-color: var(--primary-light);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-color: transparent;
+}
+.btn-ghost:hover {
+  background-color: var(--bg-subtle);
+  color: var(--text-main);
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  color: #FFFFFF;
+}
+.btn-danger:hover {
+  background-color: #B83B3B;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--secondary);
+  padding: 6px 10px;
+  min-height: 36px;
+  text-decoration: underline;
+}
+
+.btn-sm {
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 0.86rem;
+}
+
+.btn-lg {
+  min-height: 48px;
+  padding: 12px 24px;
+  font-size: 1rem;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+.btn-icon:hover {
+  background: var(--border-soft);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* 主要版面容器 */
+.app-main {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* 首次使用友善引導 */
+.onboarding-card {
+  background: linear-gradient(135deg, #FFF8EE 0%, #FFEFE5 100%);
+  border: 2px dashed #E9A68F;
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.onboarding-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.onboarding-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.onboarding-desc {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+/* 快速工作列表橫條 */
+.jobs-strip-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  box-shadow: var(--shadow-sm);
+}
+
+.jobs-strip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.section-label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.jobs-strip-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jobs-strip-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.job-mini-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--bg-cream);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+.job-mini-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--primary);
+}
+.job-mini-card.is-disabled {
+  opacity: 0.6;
+  background: #F3F1EC;
+}
+
+.job-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.12);
+}
+
+.job-mini-name {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--text-main);
+}
+
+.job-mini-wage {
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-weight: 600;
+}
+
+/* 年月選擇器工具列 */
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+
+.month-Selectors {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-select,
+.form-input {
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 0.96rem;
+  font-family: inherit;
+  color: var(--text-main);
+  background-color: var(--bg-cream);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast);
+}
+
+.form-select {
+  font-weight: 700;
+  padding-right: 28px;
+  cursor: pointer;
+}
+
+.month-nav-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-nav {
+  background: var(--bg-warm);
+  color: var(--text-main);
+  border: 1px solid var(--border-soft);
+  padding: 8px 14px;
+}
+.btn-nav:hover {
+  background: #EFE5CE;
+}
+.btn-today {
+  background: var(--primary-light);
+  color: var(--primary-hover);
+  border-color: #F4C3B4;
+}
+
+/* 當月無班次提示橫幅 */
+.empty-month-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #FFF9EC;
+  border: 1px solid #F2D8A7;
+  color: #6B4E19;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.94rem;
+}
+
+/* 主工作區雙欄佈局（桌面版：左大月曆 + 右側編輯面板） */
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.workspace-grid.has-panel-open {
+  grid-template-columns: minmax(0, 1fr) 400px;
+}
+
+/* 月曆卡片 */
+.calendar-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+}
+
+.weekday-header {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.weekday-cell {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 8px 4px;
+}
+.weekday-cell.weekend {
+  color: var(--primary);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.calendar-day {
+  min-height: 112px;
+  background: var(--bg-cream);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.calendar-day:hover {
+  border-color: var(--primary);
+  background: #FFFFFF;
+  box-shadow: var(--shadow-sm);
+}
+
+.calendar-day.is-empty {
+  background: #F8F4EA;
+  border-color: transparent;
+  cursor: default;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.calendar-day.is-today {
+  border-color: var(--primary);
+  background: #FFF9F6;
+}
+
+.calendar-day.has-shifts {
+  background: #FFFFFF;
+}
+
+.calendar-day.is-selected {
+  border: 2px solid var(--secondary);
+  box-shadow: 0 0 0 3px rgba(61, 90, 128, 0.16);
+}
+
+.day-cell-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+}
+
+.day-number {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+
+.calendar-day.is-today .day-number {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+.today-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 1px 6px;
+  border-radius: 99px;
+}
+
+.work-indicator-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-sage);
+}
+
+.day-shifts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.cal-shift-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1F1D1B;
+  border-left: 4px solid var(--primary);
+  background: var(--bg-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-shift-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-shift-time {
+  font-size: 0.7rem;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.cal-more-badge {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: var(--secondary);
+  background: #EBF1F8;
+  padding: 2px 6px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+/* 每日排班編輯面板（桌面版側欄） */
+.panel-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(35, 31, 28, 0.42);
+  z-index: 45;
+  opacity: 0;
+  transition: opacity var(--transition-normal);
+}
+.panel-backdrop.is-visible {
+  opacity: 1;
+}
+
+.day-editor-panel {
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: 20px;
+  position: sticky;
+  top: 84px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  z-index: 40;
+}
+
+.panel-drag-handle {
+  display: none;
+  width: 44px;
+  height: 5px;
+  background: var(--border-soft);
+  border-radius: 99px;
+  margin: 0 auto 12px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.today-pill {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--primary-light);
+  color: var(--primary);
+  padding: 2px 8px;
+  border-radius: 99px;
+  margin-bottom: 4px;
+}
+
+.panel-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.panel-body {
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.workday-toggle-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-warm);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-soft);
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.98rem;
+  user-select: none;
+  min-height: 36px;
+}
+
+.checkbox-input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.day-summary-chip {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-soft);
+}
+
+.panel-empty-box,
+.panel-rest-box {
+  background: var(--bg-cream);
+  border: 1px dashed var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.92rem;
+}
+
+.day-work-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.alert-warning {
+  background: #FFF6E5;
+  border: 1px solid #F0C475;
+  color: #7A4F0B;
+}
+
+/* 當日班次列表卡片 */
+.day-shifts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shift-item-card {
+  background: var(--bg-cream);
+  border: 1.5px solid var(--border-soft);
+  border-left-width: 6px;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shift-item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.shift-item-job {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 0.98rem;
+}
+
+.shift-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-chip {
+  min-height: 34px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-card);
+  color: var(--text-main);
+  cursor: pointer;
+}
+.btn-chip:hover {
+  background: var(--bg-subtle);
+}
+.btn-chip.danger {
+  color: var(--danger);
+  border-color: #F3C4C4;
+}
+.btn-chip.danger:hover {
+  background: var(--danger-light);
+}
+
+.shift-item-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.shift-item-pay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-soft);
+  font-size: 0.88rem;
+}
+
+.shift-item-pay {
+  font-weight: 800;
+  color: var(--primary-hover);
+  font-size: 0.98rem;
+}
+
+/* 班次編輯表單 */
+.shift-form {
+  background: #FAF6EE;
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.shift-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.shift-form-title {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.live-preview-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #E6F4EE;
+  color: #26694E;
+  padding: 3px 8px;
+  border-radius: 99px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.required {
+  color: var(--danger);
+}
+
+.form-row-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-row-three {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.shift-job-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.input-with-unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.input-with-unit .form-input {
+  flex: 1;
+}
+.input-unit {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.field-hint {
+  font-size: 0.82rem;
+  color: var(--secondary);
+  font-weight: 600;
+}
+
+.form-error {
+  background: var(--danger-light);
+  border: 1px solid #F1B5B5;
+  color: #9C2B2B;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.shift-preview-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+
+.shift-preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.highlight-amount {
+  color: var(--primary-hover);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.shift-form-actions,
+.job-form-actions,
+.confirm-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* 頁尾儲存提醒 */
+.app-footer {
+  margin-top: 8px;
+}
+
+.storage-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  background: var(--bg-warm);
+  border: 1px solid var(--border-soft);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+}
+
+/* 右下角固定：當月薪資摘要（桌面版右下角卡片） */
+.salary-summary-widget {
+  position: fixed;
+  right: 24px;
+  bottom: 20px;
+  width: 370px;
+  max-width: calc(100vw - 32px);
+  background: var(--bg-card);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 16px 18px;
+  z-index: 35;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.summary-compact-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.summary-month-label {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+}
+
+.summary-tag {
+  font-size: 0.76rem;
+  font-weight: 700;
+  background: var(--primary-light);
+  color: var(--primary-hover);
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+.preview-badge {
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: #FFF3CD;
+  color: #855A00;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+.summary-total-amount {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.summary-quick-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.stat-pill {
+  background: var(--bg-warm);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.btn-toggle-detail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 38px;
+  background: var(--bg-subtle);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-toggle-detail:hover {
+  background: var(--border-soft);
+}
+
+.btn-toggle-detail[aria-expanded="true"] .chevron-icon {
+  transform: rotate(180deg);
+}
+
+.summary-detail-drawer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+  max-height: 240px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.summary-breakdown-header {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.summary-job-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breakdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--bg-cream);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 0.85rem;
+}
+
+.breakdown-job-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.breakdown-job-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breakdown-job-stats {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.breakdown-pay {
+  font-weight: 800;
+  color: var(--text-main);
+  display: block;
+}
+
+.breakdown-hours {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.summary-disclaimer {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Modal 視窗 */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(35, 31, 28, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 60;
+}
+
+.modal-dialog {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.modal-sm {
+  max-width: 480px;
+}
+
+.modal-xs {
+  max-width: 400px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.modal-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.modal-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-jobs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.job-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-cream);
+  border: 1.5px solid var(--border-soft);
+  border-left-width: 6px;
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+.job-card.is-disabled {
+  opacity: 0.68;
+  background: #F3F0E8;
+}
+
+.job-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.job-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.job-card-name {
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.status-tag {
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: #E5E0D5;
+  color: var(--text-secondary);
+}
+
+.job-card-meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.job-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.job-form {
+  background: var(--bg-warm);
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.color-swatch-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  transition: transform var(--transition-fast);
+}
+.color-swatch:hover {
+  transform: scale(1.08);
+}
+.color-swatch.is-selected {
+  border-color: var(--text-main);
+  box-shadow: 0 0 0 2px #fff inset;
+}
+
+.optional-fieldset {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.optional-legend {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  padding: 0 6px;
+}
+
+.backup-section {
+  background: var(--bg-cream);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.backup-section h3 {
+  font-size: 1rem;
+  font-weight: 800;
+}
+.backup-section p {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.file-upload-label {
+  cursor: pointer;
+}
+
+.confirm-desc {
+  font-size: 0.94rem;
+  color: var(--text-secondary);
+}
+
+/* Toast 通知與復原列 */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+}
+
+.toast-item {
+  background: #2B2623;
+  color: #FFFDF7;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.btn-undo {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* 響應式：平板與手機版 (<= 960px) */
+@media (max-width: 960px) {
+  .workspace-grid,
+  .workspace-grid.has-panel-open {
+    grid-template-columns: 1fr;
+  }
+
+  /* 手機與平板版：日期編輯面板改為適合觸控的底部面板 (Bottom Sheet) */
+  .day-editor-panel {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 100%;
+    max-height: 86vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    z-index: 50;
+    padding: 14px 18px calc(24px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -10px 32px rgba(0, 0, 0, 0.18);
+  }
+
+  .panel-drag-handle {
+    display: block;
+  }
+}
+
+/* 響應式：手機版單欄與底部固定精簡薪資摘要 (<= 640px) */
+@media (max-width: 640px) {
+  body {
+    padding-bottom: 180px;
+  }
+
+  .app-main {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .onboarding-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 18px;
+  }
+  .onboarding-content {
+    align-items: center;
+  }
+
+  .calendar-card {
+    padding: 8px;
+  }
+
+  .calendar-grid {
+    gap: 4px;
+  }
+
+  .calendar-day {
+    min-height: 82px;
+    padding: 5px 4px;
+    border-radius: 10px;
+  }
+
+  .day-number {
+    font-size: 0.82rem;
+    width: 22px;
+    height: 22px;
+  }
+
+  .today-tag {
+    display: none;
+  }
+
+  .cal-shift-pill {
+    padding: 2px 4px;
+    font-size: 0.68rem;
+    border-left-width: 3px;
+  }
+
+  .cal-shift-time {
+    display: none;
+  }
+
+  .form-row-two,
+  .form-row-three {
+    grid-template-columns: 1fr;
+  }
+
+  /* 手機版底部固定精簡薪資摘要 */
+  .salary-summary-widget {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .summary-compact-bar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .summary-total-amount {
+    font-size: 1.35rem;
+  }
+
+  .summary-quick-stats {
+    grid-column: 1 / -1;
+  }
+
+  .btn-toggle-detail {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+    padding: 6px 12px;
+  }
+}
+
+</style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">跳至主要內容</a>
+
+  <!-- 頂部導覽列 -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <div class="brand-logo" aria-hidden="true">
+          <!-- 溫暖可愛的打工小幫手插畫圖示 -->
+          <svg viewBox="0 0 48 48" width="40" height="40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4" y="6" width="40" height="38" rx="12" fill="#FFE8D6" stroke="#E07A5F" stroke-width="2.5"/>
+            <path d="M4 16C4 10.4772 8.47715 6 14 6H34C39.5228 6 44 10.4772 44 16V18H4V16Z" fill="#E07A5F"/>
+            <circle cx="15" cy="11" r="2.5" fill="#FFFDF7"/>
+            <circle cx="33" cy="11" r="2.5" fill="#FFFDF7"/>
+            <circle cx="24" cy="30" r="8" fill="#F2CC8F" stroke="#D48C46" stroke-width="2"/>
+            <path d="M24 25V35M21 27.5H25.5C26.6 27.5 26.6 29.8 25.5 29.8H22.5C21.4 29.8 21.4 32.5 22.5 32.5H27" stroke="#7F4F24" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title">打工薪資小幫手</h1>
+          <p class="app-subtitle">輕鬆記錄每一班，即時掌握每月收入</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" id="btn-open-jobs" class="btn btn-secondary" aria-haspopup="dialog">
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <rect x="2.5" y="5.5" width="15" height="11" rx="2.5"/>
+            <path d="M7 5.5V4C7 3.17157 7.67157 2.5 8.5 2.5H11.5C12.3284 2.5 13 3.17157 13 4V5.5"/>
+          </svg>
+          <span>工作管理</span>
+          <span id="job-count-badge" class="badge">0</span>
+        </button>
+
+        <button type="button" id="btn-open-backup" class="btn btn-ghost" aria-haspopup="dialog" title="匯出與匯入備份">
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M10 3V13M10 13L6.5 9.5M10 13L13.5 9.5"/>
+            <path d="M3.5 14.5V15.5C3.5 16.6046 4.39543 17.5 5.5 17.5H14.5C15.6046 17.5 16.5 16.6046 16.5 15.5V14.5"/>
+          </svg>
+          <span>資料備份</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要內容區 -->
+  <main id="main-content" class="app-main">
+    <!-- 首次使用友善引導橫幅（無工作時顯示） -->
+    <section id="onboarding-banner" class="onboarding-card" aria-live="polite" hidden>
+      <div class="onboarding-illustration" aria-hidden="true">
+        <svg viewBox="0 0 120 100" width="108" height="90" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="60" cy="52" r="40" fill="#FFF3E0"/>
+          <rect x="34" y="24" width="52" height="58" rx="10" fill="#FFFFFF" stroke="#E07A5F" stroke-width="3"/>
+          <path d="M45 42H75M45 54H68M45 66H60" stroke="#81B29A" stroke-width="3.5" stroke-linecap="round"/>
+          <circle cx="84" cy="70" r="16" fill="#E07A5F"/>
+          <path d="M84 63V77M77 70H91" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="onboarding-content">
+        <h2 class="onboarding-title">先新增一份工作，開始記錄你的努力！</h2>
+        <p class="onboarding-desc">只需輸入工作名稱與時薪，就能立刻在月曆上排班並自動試算每月薪資。</p>
+        <button type="button" id="btn-onboarding-add-job" class="btn btn-primary btn-lg">
+          <span>＋ 新增工作</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 快速工作列表列（已有工作時顯示） -->
+    <section id="jobs-strip-section" class="jobs-strip-section" aria-label="目前工作列表" hidden>
+      <div class="jobs-strip-header">
+        <h2 class="section-label">我的工作項目</h2>
+        <div class="jobs-strip-actions">
+          <button type="button" id="btn-strip-add-job" class="btn btn-sm btn-outline">＋ 新增另一份工作</button>
+          <button type="button" id="btn-strip-manage-jobs" class="btn btn-sm btn-link">管理全部</button>
+        </div>
+      </div>
+      <div id="jobs-strip-list" class="jobs-strip-list" role="list"></div>
+    </section>
+
+    <!-- 工具列：年月選擇器與快速切換按鈕 -->
+    <section class="calendar-toolbar" aria-label="年月選擇與導覽">
+      <div class="month-Selectors">
+        <div class="select-group">
+          <label for="select-year" class="sr-only">選擇年份</label>
+          <select id="select-year" class="form-select" aria-label="選擇年份"></select>
+        </div>
+        <div class="select-group">
+          <label for="select-month" class="sr-only">選擇月份</label>
+          <select id="select-month" class="form-select" aria-label="選擇月份"></select>
+        </div>
+      </div>
+
+      <div class="month-nav-buttons" role="group" aria-label="月份快速切換">
+        <button type="button" id="btn-prev-month" class="btn btn-nav" aria-label="切換至上個月">
+          <span aria-hidden="true">←</span> 上個月
+        </button>
+        <button type="button" id="btn-current-month" class="btn btn-nav btn-today">
+          本月
+        </button>
+        <button type="button" id="btn-next-month" class="btn btn-nav" aria-label="切換至下個月">
+          下個月 <span aria-hidden="true">→</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- 當月無班次友善提示 -->
+    <div id="empty-month-hint" class="empty-month-banner" role="status" aria-live="polite" hidden>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#E07A5F" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 8V12L14.5 14.5" stroke-linecap="round"/>
+      </svg>
+      <span>點選日期，記下這個月的第一班吧！</span>
+    </div>
+
+    <!-- 月曆與側邊面板雙欄容器 -->
+    <div class="workspace-grid">
+      <!-- 月曆主體 -->
+      <section class="calendar-card" aria-label="排班月曆">
+        <div class="weekday-header" role="row">
+          <div class="weekday-cell weekend" role="columnheader">日</div>
+          <div class="weekday-cell" role="columnheader">一</div>
+          <div class="weekday-cell" role="columnheader">二</div>
+          <div class="weekday-cell" role="columnheader">三</div>
+          <div class="weekday-cell" role="columnheader">四</div>
+          <div class="weekday-cell" role="columnheader">五</div>
+          <div class="weekday-cell weekend" role="columnheader">六</div>
+        </div>
+        <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="當月日期格子"></div>
+      </section>
+
+      <!-- 每日排班編輯面板（桌面版側邊面板 / 手機版底部面板） -->
+      <div id="day-panel-backdrop" class="panel-backdrop" hidden></div>
+      <aside id="day-editor-panel" class="day-editor-panel" aria-labelledby="day-panel-title" aria-hidden="true" hidden>
+        <div class="panel-drag-handle" aria-hidden="true"></div>
+        <div class="panel-header">
+          <div>
+            <span id="day-panel-badge" class="today-pill" hidden>今天</span>
+            <h2 id="day-panel-title" class="panel-title">選擇日期</h2>
+          </div>
+          <button type="button" id="btn-close-day-panel" class="btn-icon" aria-label="關閉日期編輯面板">
+            ✕
+          </button>
+        </div>
+
+        <div class="panel-body">
+          <!-- 這天有上班勾選框 -->
+          <div class="workday-toggle-box">
+            <label class="checkbox-label" for="chk-has-work">
+              <input type="checkbox" id="chk-has-work" class="checkbox-input" />
+              <span class="checkbox-custom"></span>
+              <span class="checkbox-text">這天有上班</span>
+            </label>
+            <span id="day-summary-chip" class="day-summary-chip">無排班</span>
+          </div>
+
+          <!-- 尚未建立工作時的提示 -->
+          <div id="day-no-job-prompt" class="panel-empty-box" hidden>
+            <p>目前還沒有可用的工作項目，請先新增一份工作再排班！</p>
+            <button type="button" id="btn-panel-create-job" class="btn btn-primary">＋ 立即新增工作</button>
+          </div>
+
+          <!-- 未勾選上班時的提示 -->
+          <div id="day-rest-state" class="panel-rest-box">
+            <svg viewBox="0 0 64 64" width="52" height="52" fill="none" aria-hidden="true">
+              <circle cx="32" cy="32" r="26" fill="#F4F1EA"/>
+              <path d="M22 36C24.5 40 28 42 32 42C36 42 39.5 40 42 36" stroke="#8C8275" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="24" cy="26" r="2.5" fill="#8C8275"/>
+              <circle cx="40" cy="26" r="2.5" fill="#8C8275"/>
+            </svg>
+            <p>這天目前是休假日，勾選上方「這天有上班」即可開始排班。</p>
+          </div>
+
+          <!-- 勾選上班後的班次列表與編輯表單 -->
+          <div id="day-work-content" class="day-work-content" hidden>
+            <!-- 時間重疊提醒 -->
+            <div id="overlap-warning" class="alert alert-warning" role="alert" hidden>
+              <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M10 3L18 17H2L10 3Z"/>
+                <path d="M10 8V11.5M10 14.5H10.01" stroke-linecap="round"/>
+              </svg>
+              <span id="overlap-warning-text">提醒：本日有班次時間互相重疊，請確認排班時間是否正確。</span>
+            </div>
+
+            <!-- 已儲存的班次清單 -->
+            <div id="day-shifts-list" class="day-shifts-list" role="list" aria-label="當日已排班次"></div>
+
+            <!-- 新增其他班次按鈕 -->
+            <button type="button" id="btn-add-another-shift" class="btn btn-outline btn-block">
+              ＋ 新增同一天的其他班次
+            </button>
+
+            <!-- 班次新增/編輯表單 -->
+            <form id="shift-form" class="shift-form" novalidate hidden>
+              <div class="shift-form-header">
+                <h3 id="shift-form-title" class="shift-form-title">新增班次</h3>
+                <span id="shift-live-tag" class="live-preview-pill">即時試算中</span>
+              </div>
+
+              <div class="form-group">
+                <label for="shift-job-select" class="form-label">選擇工作 <span class="required">*</span></label>
+                <select id="shift-job-select" class="form-select" required></select>
+                <div id="shift-job-meta" class="shift-job-meta"></div>
+              </div>
+
+              <div class="form-row-two">
+                <div class="form-group">
+                  <label for="shift-start-time" class="form-label">實際上班時間 <span class="required">*</span></label>
+                  <input type="time" id="shift-start-time" class="form-input" required />
+                </div>
+                <div class="form-group">
+                  <label for="shift-end-time" class="form-label">實際下班時間 <span class="required">*</span></label>
+                  <input type="time" id="shift-end-time" class="form-input" required />
+                </div>
+              </div>
+
+              <div class="form-group cross-day-group">
+                <label class="checkbox-label" for="shift-next-day">
+                  <input type="checkbox" id="shift-next-day" class="checkbox-input" />
+                  <span class="checkbox-custom"></span>
+                  <span class="checkbox-text">隔日下班（跨午夜班次）</span>
+                </label>
+                <p id="shift-date-span-info" class="field-hint"></p>
+              </div>
+
+              <div class="form-group">
+                <label for="shift-break-mins" class="form-label">不計薪休息分鐘數</label>
+                <div class="input-with-unit">
+                  <input type="number" id="shift-break-mins" class="form-input" min="0" max="1440" step="1" value="0" inputmode="numeric" />
+                  <span class="input-unit">分鐘</span>
+                </div>
+              </div>
+
+              <div id="shift-form-error" class="form-error" role="alert" hidden></div>
+
+              <!-- 單一班次即時預覽小卡 -->
+              <div class="shift-preview-box" aria-live="polite">
+                <div class="shift-preview-row">
+                  <span>本班次計薪工時</span>
+                  <strong id="preview-shift-hours">0 小時 0 分鐘</strong>
+                </div>
+                <div class="shift-preview-row">
+                  <span>本班次預估薪資</span>
+                  <strong id="preview-shift-pay" class="highlight-amount">NT$ 0.00</strong>
+                </div>
+              </div>
+
+              <div class="shift-form-actions">
+                <button type="button" id="btn-cancel-shift" class="btn btn-ghost">取消</button>
+                <button type="submit" id="btn-save-shift" class="btn btn-primary">儲存班次</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- 底部儲存提示與隱私宣告 -->
+    <footer class="app-footer">
+      <div class="storage-notice">
+        <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <rect x="4" y="9" width="12" height="8" rx="2"/>
+          <path d="M7 9V6C7 4.34315 8.34315 3 10 3C11.6569 3 13 4.34315 13 6V9"/>
+        </svg>
+        <span>資料儲存在目前瀏覽器，不會自動跨裝置同步。建議定期使用右上角「資料備份」匯出 JSON 檔案保存。</span>
+      </div>
+    </footer>
+  </main>
+
+  <!-- 右下角/底部固定：當月薪資摘要（桌面版右下角固定卡片 / 手機版底部固定精簡列） -->
+  <aside id="salary-summary-widget" class="salary-summary-widget" aria-label="當月薪資摘要">
+    <div class="summary-compact-bar">
+      <div class="summary-main-info">
+        <div class="summary-title-row">
+          <span id="summary-month-label" class="summary-month-label">2026 年 10 月</span>
+          <span class="summary-tag">預估薪資</span>
+          <span id="summary-preview-indicator" class="preview-badge" hidden>編輯預覽中</span>
+        </div>
+        <div id="summary-total-amount" class="summary-total-amount" aria-live="polite">NT$ 0</div>
+      </div>
+
+      <div class="summary-quick-stats">
+        <div class="stat-pill">
+          <span class="stat-label">總計薪工時</span>
+          <strong id="summary-total-hours" class="stat-value">0 小時 0 分</strong>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">上班天數</span>
+          <strong id="summary-work-days" class="stat-value">0 天</strong>
+        </div>
+      </div>
+
+      <button type="button" id="btn-toggle-summary-detail" class="btn-toggle-detail" aria-expanded="false" aria-controls="summary-detail-drawer">
+        <span id="toggle-detail-text">展開明細</span>
+        <svg class="chevron-icon" viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M5 12.5L10 7.5L15 12.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 展開的各工作小計與說明 -->
+    <div id="summary-detail-drawer" class="summary-detail-drawer" hidden>
+      <div class="summary-breakdown-header">
+        <span>各份工作工時與薪資小計</span>
+      </div>
+      <div id="summary-job-breakdown" class="summary-job-breakdown" role="list"></div>
+      <p class="summary-disclaimer">
+        依已排班工時與時薪計算，未含加班加成、津貼及扣款。跨午夜班次以班次開始日期歸屬當月統計。
+      </p>
+    </div>
+  </aside>
+
+  <!-- 工作管理 Modal -->
+  <div id="jobs-modal-backdrop" class="modal-backdrop" hidden>
+    <div id="jobs-modal" class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="jobs-modal-title">
+      <div class="modal-header">
+        <div>
+          <h2 id="jobs-modal-title" class="modal-title">工作管理</h2>
+          <p class="modal-subtitle">新增、編輯或停用兼職工作；修改時薪只會套用到之後新增的班次。</p>
+        </div>
+        <button type="button" id="btn-close-jobs-modal" class="btn-icon" aria-label="關閉工作管理視窗">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 工作清單 -->
+        <div id="modal-jobs-list" class="modal-jobs-list" role="list"></div>
+
+        <button type="button" id="btn-show-job-form" class="btn btn-outline btn-block">
+          ＋ 新增另一份工作
+        </button>
+
+        <!-- 新增/編輯工作表單 -->
+        <form id="job-form" class="job-form" novalidate hidden>
+          <h3 id="job-form-title" class="job-form-title">新增工作</h3>
+
+          <div class="form-row-two">
+            <div class="form-group">
+              <label for="job-name-input" class="form-label">工作名稱 <span class="required">*</span></label>
+              <input type="text" id="job-name-input" class="form-input" placeholder="例如：轉角咖啡廳、家教" maxlength="40" required />
+            </div>
+            <div class="form-group">
+              <label for="job-wage-input" class="form-label">時薪 (NT$) <span class="required">*</span></label>
+              <input type="number" id="job-wage-input" class="form-input" placeholder="例如：190" min="0.01" step="any" inputmode="decimal" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" id="color-picker-label">識別顏色（用於月曆標籤與薪資分類）</label>
+            <div id="job-color-picker" class="color-swatch-group" role="radiogroup" aria-labelledby="color-picker-label"></div>
+          </div>
+
+          <fieldset class="optional-fieldset">
+            <legend class="optional-legend">選填預設排班設定（新增班次時自動帶入）</legend>
+            <div class="form-row-three">
+              <div class="form-group">
+                <label for="job-default-start" class="form-label">預設上班時間</label>
+                <input type="time" id="job-default-start" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label for="job-default-end" class="form-label">預設下班時間</label>
+                <input type="time" id="job-default-end" class="form-input" />
+              </div>
+              <div class="form-group">
+                <label for="job-default-break" class="form-label">預設不計薪休息（分）</label>
+                <input type="number" id="job-default-break" class="form-input" placeholder="0" min="0" max="720" step="1" inputmode="numeric" />
+              </div>
+            </div>
+          </fieldset>
+
+          <div id="job-form-error" class="form-error" role="alert" hidden></div>
+
+          <div class="job-form-actions">
+            <button type="button" id="btn-cancel-job-form" class="btn btn-ghost">取消</button>
+            <button type="submit" id="btn-save-job-form" class="btn btn-primary">儲存工作</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 資料備份（匯出/匯入 JSON）Modal -->
+  <div id="backup-modal-backdrop" class="modal-backdrop" hidden>
+    <div id="backup-modal" class="modal-dialog modal-sm" role="dialog" aria-modal="true" aria-labelledby="backup-modal-title">
+      <div class="modal-header">
+        <div>
+          <h2 id="backup-modal-title" class="modal-title">資料備份與還原</h2>
+          <p class="modal-subtitle">資料儲存在目前瀏覽器，不會自動跨裝置同步。</p>
+        </div>
+        <button type="button" id="btn-close-backup-modal" class="btn-icon" aria-label="關閉備份視窗">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="backup-section">
+          <h3>匯出備份 (JSON)</h3>
+          <p>將目前所有的工作設定與排班紀錄下載為 JSON 檔案妥善保存。</p>
+          <button type="button" id="btn-export-json" class="btn btn-primary btn-block">下載 JSON 備份檔</button>
+        </div>
+
+        <div class="backup-section">
+          <h3>匯入還原 (JSON)</h3>
+          <p>選擇先前匯出的 JSON 備份檔案。匯入前會自動驗證格式，並在覆蓋既有資料前請您確認。</p>
+          <label for="input-import-json" class="btn btn-outline btn-block file-upload-label">
+            選擇 JSON 檔案匯入
+          </label>
+          <input type="file" id="input-import-json" accept=".json,application/json" class="sr-only" />
+          <div id="import-error-msg" class="form-error" role="alert" hidden></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 確認對話框 Modal（清除當日班次確認 / 匯入覆蓋確認） -->
+  <div id="confirm-modal-backdrop" class="modal-backdrop" hidden>
+    <div id="confirm-modal" class="modal-dialog modal-xs" role="alertdialog" aria-modal="true" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-desc">
+      <h2 id="confirm-modal-title" class="modal-title">確認操作</h2>
+      <p id="confirm-modal-desc" class="confirm-desc"></p>
+      <div class="confirm-actions">
+        <button type="button" id="btn-confirm-cancel" class="btn btn-ghost">取消</button>
+        <button type="button" id="btn-confirm-ok" class="btn btn-danger">確定執行</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 頂部/底部 Toast 回饋與刪除復原通知 -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+/**
+ * 打工薪資小幫手 - 完整前端應用邏輯
+ * 支援：多工作管理、跨午夜班次、分鐘級精準計薪、編輯即時預覽、復原刪除、localStorage 與 JSON 備份還原
+ */
+
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'part_time_salary_helper_v1';
+
+  // 柔和且具辨識度的工作識別色盤
+  const JOB_COLORS = [
+    { id: 'coral', name: '暖珊瑚紅', hex: '#E07A5F', light: '#FCEAE4' },
+    { id: 'sage', name: '鼠尾草綠', hex: '#4D8B74', light: '#E3F2EC' },
+    { id: 'ocean', name: '晴空海藍', hex: '#3D7EA6', light: '#E3F0F8' },
+    { id: 'amber', name: '蜂蜜琥珀', hex: '#D98A2B', light: '#FDF0DF' },
+    { id: 'plum', name: '柔和梅紫', hex: '#8E6399', light: '#F1E8F4' },
+    { id: 'rose', name: '玫瑰粉紅', hex: '#C86D85', light: '#F9E8EC' },
+    { id: 'teal', name: '湖水青綠', hex: '#2E8B8B', light: '#E2F3F3' },
+    { id: 'Cocoa', name: '溫暖可可', hex: '#8C6249', light: '#F3EAE4' }
+  ];
+
+  const WEEKDAY_NAMES = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+
+  // 取得今日日期資訊
+  const now = new Date();
+  const TODAY_YEAR = now.getFullYear();
+  const TODAY_MONTH = now.getMonth() + 1;
+  const TODAY_DAY = now.getDate();
+  const TODAY_DATE_STR = formatDateKey(TODAY_YEAR, TODAY_MONTH, TODAY_DAY);
+
+  // 應用程式狀態
+  let state = {
+    selectedYear: TODAY_YEAR,
+    selectedMonth: TODAY_MONTH,
+    selectedDate: null, // 'YYYY-MM-DD'
+    jobs: [],           // [{ id, name, hourlyWage, color, defaultStart, defaultEnd, defaultBreak, active, createdAt }]
+    shifts: [],         // [{ id, date, jobId, jobName, jobColor, hourlyWage, startTime, endTime, isNextDay, breakMinutes, updatedAt }]
+    editingShiftId: null,     // null 代表非編輯特定舊班次；'__NEW__' 代表新增班次中
+    draftShift: null,         // 編輯中的即時預覽班次草稿
+    editingJobId: null,       // 工作管理表單目前編輯的工作 ID
+    selectedJobColor: JOB_COLORS[0].hex,
+    lastDeletedShift: null,   // 供復原使用的暫存班次
+    confirmCallback: null
+  };
+
+  // DOM 元素快取
+  const els = {};
+
+  function initDomRefs() {
+    const ids = [
+      'btn-open-jobs', 'job-count-badge', 'btn-open-backup',
+      'onboarding-banner', 'btn-onboarding-add-job',
+      'jobs-strip-section', 'jobs-strip-list', 'btn-strip-add-job', 'btn-strip-manage-jobs',
+      'select-year', 'select-month', 'btn-prev-month', 'btn-current-month', 'btn-next-month',
+      'empty-month-hint', 'calendar-grid',
+      'day-panel-backdrop', 'day-editor-panel', 'day-panel-badge', 'day-panel-title', 'btn-close-day-panel',
+      'chk-has-work', 'day-summary-chip', 'day-no-job-prompt', 'btn-panel-create-job',
+      'day-rest-state', 'day-work-content', 'overlap-warning', 'overlap-warning-text',
+      'day-shifts-list', 'btn-add-another-shift',
+      'shift-form', 'shift-form-title', 'shift-live-tag', 'shift-job-select', 'shift-job-meta',
+      'shift-start-time', 'shift-end-time', 'shift-next-day', 'shift-date-span-info',
+      'shift-break-mins', 'shift-form-error', 'preview-shift-hours', 'preview-shift-pay',
+      'btn-cancel-shift', 'btn-save-shift',
+      'salary-summary-widget', 'summary-month-label', 'summary-preview-indicator',
+      'summary-total-amount', 'summary-total-hours', 'summary-work-days',
+      'btn-toggle-summary-detail', 'toggle-detail-text', 'summary-detail-drawer', 'summary-job-breakdown',
+      'jobs-modal-backdrop', 'jobs-modal', 'btn-close-jobs-modal', 'modal-jobs-list', 'btn-show-job-form',
+      'job-form', 'job-form-title', 'job-name-input', 'job-wage-input', 'job-color-picker',
+      'job-default-start', 'job-default-end', 'job-default-break', 'job-form-error',
+      'btn-cancel-job-form', 'btn-save-job-form',
+      'backup-modal-backdrop', 'btn-close-backup-modal', 'btn-export-json', 'input-import-json', 'import-error-msg',
+      'confirm-modal-backdrop', 'confirm-modal-title', 'confirm-modal-desc', 'btn-confirm-cancel', 'btn-confirm-ok',
+      'toast-container'
+    ];
+    ids.forEach((id) => {
+      els[id] = document.getElementById(id);
+    });
+  }
+
+  // ==================== 工具函式 ====================
+
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function formatDateKey(year, month, day) {
+    return `${year}-${pad2(month)}-${pad2(day)}`;
+  }
+
+  function parseDateKey(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return { year: y, month: m, day: d };
+  }
+
+  function getNextDateKey(dateStr) {
+    const { year, month, day } = parseDateKey(dateStr);
+    const dt = new Date(year, month - 1, day + 1);
+    return formatDateKey(dt.getFullYear(), dt.getMonth() + 1, dt.getDate());
+  }
+
+  function formatFullDateWithWeekday(dateStr) {
+    const { year, month, day } = parseDateKey(dateStr);
+    const dt = new Date(year, month - 1, day);
+    const w = WEEKDAY_NAMES[dt.getDay()];
+    return `${year} 年 ${month} 月 ${day} 日（${w}）`;
+  }
+
+  // 千分位與小數格式化
+  function formatCurrency(amount, decimals = 2) {
+    const num = Number(amount) || 0;
+    return 'NT$ ' + num.toLocaleString('zh-TW', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  }
+
+  function formatIntegerCurrency(amount) {
+    const rounded = Math.round(Number(amount) || 0);
+    return 'NT$ ' + rounded.toLocaleString('zh-TW');
+  }
+
+  function formatMinutesToHoursText(totalMinutes) {
+    const mins = Math.max(0, Math.round(totalMinutes));
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (m === 0) {
+      return `${h} 小時`;
+    }
+    return `${h} 小時 ${m} 分鐘`;
+  }
+
+  function parseTimeToMinutes(timeStr) {
+    if (!timeStr || !/^\d{2}:\d{2}$/.test(timeStr)) return null;
+    const [hh, mm] = timeStr.split(':').map(Number);
+    if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+    return hh * 60 + mm;
+  }
+
+  /**
+   * 精準分鐘級計薪：
+   * 計薪分鐘數 = (下班時間 - 上班時間) - 不計薪休息分鐘數
+   * 班次薪資 = (計薪分鐘數 / 60) * 該班次時薪 (不先對工時四捨五入)
+   */
+  function calculateShiftMetrics(startTime, endTime, isNextDay, breakMinutes, hourlyWage) {
+    const startMins = parseTimeToMinutes(startTime);
+    const endMins = parseTimeToMinutes(endTime);
+    const breakMins = Number(breakMinutes);
+    const wage = Number(hourlyWage);
+
+    if (startMins === null || endMins === null) {
+      return { valid: false, error: '請輸入完整的上班與下班時間。', paidMinutes: 0, exactPay: 0 };
+    }
+    if (isNaN(breakMins) || breakMins < 0 || !Number.isInteger(breakMins)) {
+      return { valid: false, error: '休息時間請輸入 0 以上的整數分鐘。', paidMinutes: 0, exactPay: 0 };
+    }
+    if (isNaN(wage) || wage <= 0) {
+      return { valid: false, error: '時薪必須大於 0。', paidMinutes: 0, exactPay: 0 };
+    }
+
+    let rawDuration = endMins - startMins;
+    if (isNextDay) {
+      rawDuration += 24 * 60;
+    }
+
+    if (rawDuration <= 0) {
+      return {
+        valid: false,
+        error: '下班時間需晚於上班時間；若為跨午夜班次，請勾選「隔日下班」。',
+        paidMinutes: 0,
+        exactPay: 0
+      };
+    }
+
+    if (rawDuration > 24 * 60) {
+      return {
+        valid: false,
+        error: '單一班次總長度不可超過 24 小時，請確認下班時間與隔日設定。',
+        paidMinutes: 0,
+        exactPay: 0
+      };
+    }
+
+    if (breakMins >= rawDuration) {
+      return {
+        valid: false,
+        error: `休息時間（${breakMins} 分鐘）不可超過或等於班次總長度（${rawDuration} 分鐘）。`,
+        paidMinutes: 0,
+        exactPay: 0
+      };
+    }
+
+    const paidMinutes = rawDuration - breakMins;
+    const exactPay = (paidMinutes / 60) * wage;
+
+    return {
+      valid: true,
+      error: null,
+      rawDuration,
+      paidMinutes,
+      exactPay,
+      startOffset: startMins,
+      endOffset: startMins + rawDuration
+    };
+  }
+
+  // 檢查同日班次是否時間重疊
+  function detectOverlappingShifts(shiftsForDay) {
+    if (!shiftsForDay || shiftsForDay.length < 2) return [];
+    const intervals = [];
+    shiftsForDay.forEach((s) => {
+      const m = calculateShiftMetrics(s.startTime, s.endTime, s.isNextDay, s.breakMinutes, s.hourlyWage);
+      if (m.valid) {
+        intervals.push({
+          id: s.id,
+          jobName: s.jobName,
+          start: m.startOffset,
+          end: m.endOffset,
+          label: `${s.jobName} (${s.startTime}–${s.endTime}${s.isNextDay ? ' 隔日' : ''})`
+        });
+      }
+    });
+
+    const overlaps = [];
+    for (let i = 0; i < intervals.length; i++) {
+      for (let j = i + 1; j < intervals.length; j++) {
+        const a = intervals[i];
+        const b = intervals[j];
+        if (a.start < b.end && b.start < a.end) {
+          overlaps.push(`${a.label} 與 ${b.label}`);
+        }
+      }
+    }
+    return overlaps;
+  }
+
+  function getLightColor(hex) {
+    const found = JOB_COLORS.find((c) => c.hex.toLowerCase() === String(hex).toLowerCase());
+    return found ? found.light : '#F4EFE6';
+  }
+
+  // ==================== 資料儲存與讀取 ====================
+
+  function loadFromStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.jobs) && Array.isArray(parsed.shifts)) {
+        state.jobs = parsed.jobs;
+        state.shifts = parsed.shifts;
+      }
+    } catch (err) {
+      console.error('讀取本機儲存失敗：', err);
+    }
+  }
+
+  function saveToStorage() {
+    try {
+      const payload = {
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        jobs: state.jobs,
+        shifts: state.shifts
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch (err) {
+      console.error('寫入本機儲存失敗：', err);
+      showToast('儲存失敗：瀏覽器儲存空間可能已滿或受限。');
+    }
+  }
+
+  // ==================== 年月選擇器初始化 ====================
+
+  function initYearMonthSelectors() {
+    const yearSelect = els['select-year'];
+    const monthSelect = els['select-month'];
+    yearSelect.innerHTML = '';
+    for (let y = TODAY_YEAR - 5; y <= TODAY_YEAR + 5; y++) {
+      const opt = document.createElement('option');
+      opt.value = String(y);
+      opt.textContent = `${y} 年`;
+      yearSelect.appendChild(opt);
+    }
+    monthSelect.innerHTML = '';
+    for (let m = 1; m <= 12; m++) {
+      const opt = document.createElement('option');
+      opt.value = String(m);
+      opt.textContent = `${m} 月`;
+      monthSelect.appendChild(opt);
+    }
+    syncYearMonthSelectors();
+  }
+
+  function syncYearMonthSelectors() {
+    // 若選取年份超出預設範圍則動態補上
+    const yearSelect = els['select-year'];
+    if (![...yearSelect.options].some((o) => Number(o.value) === state.selectedYear)) {
+      const opt = document.createElement('option');
+      opt.value = String(state.selectedYear);
+      opt.textContent = `${state.selectedYear} 年`;
+      yearSelect.appendChild(opt);
+    }
+    yearSelect.value = String(state.selectedYear);
+    els['select-month'].value = String(state.selectedMonth);
+  }
+
+  // ==================== 畫面渲染 ====================
+
+  function renderAll() {
+    syncYearMonthSelectors();
+    renderHeaderAndOnboarding();
+    renderCalendar();
+    renderDayEditorPanel();
+    renderSalarySummary();
+  }
+
+  function renderHeaderAndOnboarding() {
+    const activeJobs = state.jobs.filter((j) => j.active !== false);
+    els['job-count-badge'].textContent = String(activeJobs.length);
+
+    if (state.jobs.length === 0) {
+      els['onboarding-banner'].hidden = false;
+      els['jobs-strip-section'].hidden = true;
+    } else {
+      els['onboarding-banner'].hidden = true;
+      els['jobs-strip-section'].hidden = false;
+      renderJobsStrip();
+    }
+  }
+
+  function renderJobsStrip() {
+    const container = els['jobs-strip-list'];
+    container.innerHTML = '';
+    state.jobs.forEach((job) => {
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'job-mini-card' + (job.active === false ? ' is-disabled' : '');
+      card.setAttribute('role', 'listitem');
+      card.title = job.active === false ? `${job.name}（已停用，點擊編輯）` : `點擊編輯「${job.name}」`;
+
+      const dot = document.createElement('span');
+      dot.className = 'job-color-dot';
+      dot.style.backgroundColor = job.color;
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'job-mini-name';
+      nameEl.textContent = job.name + (job.active === false ? '（已停用）' : '');
+
+      const wageEl = document.createElement('span');
+      wageEl.className = 'job-mini-wage';
+      wageEl.textContent = `${formatCurrency(job.hourlyWage, 0)} / 時`;
+
+      card.appendChild(dot);
+      card.appendChild(nameEl);
+      card.appendChild(wageEl);
+
+      card.addEventListener('click', () => {
+        openJobsModal(job.id);
+      });
+
+      container.appendChild(card);
+    });
+  }
+
+  // 判斷閏年並回傳該月天數
+  function getDaysInMonth(year, month) {
+    return new Date(year, month, 0).getDate();
+  }
+
+  function getFirstDayOfWeek(year, month) {
+    return new Date(year, month - 1, 1).getDay();
+  }
+
+  function getMonthShifts(year, month, includeDraft = false) {
+    const prefix = `${year}-${pad2(month)}-`;
+    let list = state.shifts.filter((s) => s.date.startsWith(prefix));
+
+    if (includeDraft && state.draftShift && state.draftShift.date.startsWith(prefix)) {
+      if (state.editingShiftId && state.editingShiftId !== '__NEW__') {
+        list = list.map((s) => (s.id === state.editingShiftId ? state.draftShift : s));
+      } else if (state.editingShiftId === '__NEW__') {
+        list = [...list, state.draftShift];
+      }
+    }
+    return list;
+  }
+
+  function renderCalendar() {
+    const year = state.selectedYear;
+    const month = state.selectedMonth;
+    const daysInMonth = getDaysInMonth(year, month);
+    const firstWeekday = getFirstDayOfWeek(year, month);
+
+    const monthShifts = getMonthShifts(year, month, false);
+    // 當月無班次且已有工作時，顯示提示
+    els['empty-month-hint'].hidden = !(state.jobs.length > 0 && monthShifts.length === 0);
+
+    // 依日期分組班次
+    const shiftsByDate = {};
+    monthShifts.forEach((s) => {
+      if (!shiftsByDate[s.date]) shiftsByDate[s.date] = [];
+      shiftsByDate[s.date].push(s);
+    });
+
+    const grid = els['calendar-grid'];
+    grid.innerHTML = '';
+
+    const isMobile = window.innerWidth <= 640;
+    const maxVisiblePills = isMobile ? 2 : 3;
+
+    // 前置空白格
+    for (let i = 0; i < firstWeekday; i++) {
+      const emptyCell = document.createElement('div');
+      emptyCell.className = 'calendar-day is-empty';
+      emptyCell.setAttribute('aria-hidden', 'true');
+      grid.appendChild(emptyCell);
+    }
+
+    // 當月每一天
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = formatDateKey(year, month, day);
+      const dayShifts = (shiftsByDate[dateStr] || []).slice().sort((a, b) => a.startTime.localeCompare(b.startTime));
+      const isToday = dateStr === TODAY_DATE_STR;
+      const isSelected = dateStr === state.selectedDate;
+
+      const cell = document.createElement('button');
+      cell.type = 'button';
+      cell.className = 'calendar-day' +
+        (isToday ? ' is-today' : '') +
+        (dayShifts.length > 0 ? ' has-shifts' : '') +
+        (isSelected ? ' is-selected' : '');
+      cell.dataset.date = dateStr;
+      cell.setAttribute('aria-label', `${year}年${month}月${day}日${isToday ? '（今天）' : ''}，共 ${dayShifts.length} 筆班次`);
+
+      const topRow = document.createElement('div');
+      topRow.className = 'day-cell-top';
+
+      const numSpan = document.createElement('span');
+      numSpan.className = 'day-number';
+      numSpan.textContent = String(day);
+      topRow.appendChild(numSpan);
+
+      if (isToday) {
+        const todayTag = document.createElement('span');
+        todayTag.className = 'today-tag';
+        todayTag.textContent = '今天';
+        topRow.appendChild(todayTag);
+      } else if (dayShifts.length > 0) {
+        const dot = document.createElement('span');
+        dot.className = 'work-indicator-dot';
+        dot.title = '這天有排班';
+        topRow.appendChild(dot);
+      }
+
+      cell.appendChild(topRow);
+
+      const shiftsContainer = document.createElement('div');
+      shiftsContainer.className = 'day-shifts-container';
+
+      const visibleShifts = dayShifts.slice(0, maxVisiblePills);
+      visibleShifts.forEach((shift) => {
+        const pill = document.createElement('div');
+        pill.className = 'cal-shift-pill';
+        pill.style.borderLeftColor = shift.jobColor || '#E07A5F';
+        pill.style.backgroundColor = getLightColor(shift.jobColor);
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'cal-shift-name';
+        nameSpan.textContent = shift.jobName;
+
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'cal-shift-time';
+        timeSpan.textContent = `${shift.startTime}-${shift.endTime}${shift.isNextDay ? '+1' : ''}`;
+
+        pill.appendChild(nameSpan);
+        pill.appendChild(timeSpan);
+        shiftsContainer.appendChild(pill);
+      });
+
+      if (dayShifts.length > maxVisiblePills) {
+        const moreBadge = document.createElement('div');
+        moreBadge.className = 'cal-more-badge';
+        moreBadge.textContent = `還有 ${dayShifts.length - maxVisiblePills} 筆`;
+        shiftsContainer.appendChild(moreBadge);
+      }
+
+      cell.appendChild(shiftsContainer);
+
+      cell.addEventListener('click', () => {
+        openDayPanel(dateStr);
+      });
+
+      grid.appendChild(cell);
+    }
+  }
+
+  // ==================== 每日排班面板 ====================
+
+  function openDayPanel(dateStr) {
+    state.selectedDate = dateStr;
+    state.editingShiftId = null;
+    state.draftShift = null;
+    renderAll();
+
+    const panel = els['day-editor-panel'];
+    panel.hidden = false;
+    panel.setAttribute('aria-hidden', 'false');
+    document.querySelector('.workspace-grid').classList.add('has-panel-open');
+
+    if (window.innerWidth <= 960) {
+      els['day-panel-backdrop'].hidden = false;
+      els['day-panel-backdrop'].classList.add('is-visible');
+    }
+  }
+
+  function closeDayPanel() {
+    state.selectedDate = null;
+    state.editingShiftId = null;
+    state.draftShift = null;
+    els['day-editor-panel'].hidden = true;
+    els['day-editor-panel'].setAttribute('aria-hidden', 'true');
+    els['day-panel-backdrop'].hidden = true;
+    els['day-panel-backdrop'].classList.remove('is-visible');
+    document.querySelector('.workspace-grid').classList.remove('has-panel-open');
+    renderAll();
+  }
+
+  function renderDayEditorPanel() {
+    const panel = els['day-editor-panel'];
+    if (!state.selectedDate) {
+      panel.hidden = true;
+      return;
+    }
+
+    const dateStr = state.selectedDate;
+    els['day-panel-title'].textContent = formatFullDateWithWeekday(dateStr);
+    els['day-panel-badge'].hidden = dateStr !== TODAY_DATE_STR;
+
+    const dayShifts = state.shifts
+      .filter((s) => s.date === dateStr)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    const activeJobs = state.jobs.filter((j) => j.active !== false);
+    const hasWorkChecked = dayShifts.length > 0 || state.editingShiftId !== null || els['chk-has-work'].dataset.manualChecked === 'true';
+
+    els['chk-has-work'].checked = hasWorkChecked;
+
+    if (dayShifts.length > 0) {
+      let dayMins = 0;
+      let dayPay = 0;
+      dayShifts.forEach((s) => {
+        const m = calculateShiftMetrics(s.startTime, s.endTime, s.isNextDay, s.breakMinutes, s.hourlyWage);
+        if (m.valid) {
+          dayMins += m.paidMinutes;
+          dayPay += m.exactPay;
+        }
+      });
+      els['day-summary-chip'].textContent = `共 ${dayShifts.length} 班｜${formatCurrency(dayPay, 2)}`;
+    } else {
+      els['day-summary-chip'].textContent = '無排班';
+    }
+
+    if (!hasWorkChecked) {
+      els['day-no-job-prompt'].hidden = true;
+      els['day-rest-state'].hidden = false;
+      els['day-work-content'].hidden = true;
+      return;
+    }
+
+    els['day-rest-state'].hidden = true;
+
+    // 若沒有任何啟用中的工作且當日也無舊班次
+    if (activeJobs.length === 0 && dayShifts.length === 0) {
+      els['day-no-job-prompt'].hidden = false;
+      els['day-work-content'].hidden = true;
+      return;
+    }
+
+    els['day-no-job-prompt'].hidden = true;
+    els['day-work-content'].hidden = false;
+
+    // 檢查時間重疊（包含正在編輯中的草稿）
+    const previewDayShifts = getDayShiftsWithDraft(dateStr);
+    const overlaps = detectOverlappingShifts(previewDayShifts);
+    if (overlaps.length > 0) {
+      els['overlap-warning'].hidden = false;
+      els['overlap-warning-text'].textContent = `提醒：班次時間重疊（${overlaps.join('；')}），請確認排班是否正確。`;
+    } else {
+      els['overlap-warning'].hidden = true;
+    }
+
+    // 渲染當日已儲存班次卡片
+    const listEl = els['day-shifts-list'];
+    listEl.innerHTML = '';
+    dayShifts.forEach((shift) => {
+      const metrics = calculateShiftMetrics(shift.startTime, shift.endTime, shift.isNextDay, shift.breakMinutes, shift.hourlyWage);
+      const card = document.createElement('div');
+      card.className = 'shift-item-card';
+      card.style.borderLeftColor = shift.jobColor || '#E07A5F';
+      card.setAttribute('role', 'listitem');
+
+      const nextDateStr = getNextDateKey(shift.date);
+      const timeRangeText = shift.isNextDay
+        ? `${shift.date.slice(5)} ${shift.startTime} → ${nextDateStr.slice(5)} ${shift.endTime}（隔日下班）`
+        : `${shift.startTime} – ${shift.endTime}`;
+
+      card.innerHTML = `
+        <div class="shift-item-top">
+          <div class="shift-item-job">
+            <span class="job-color-dot" style="background:${shift.jobColor}"></span>
+            <span>${escapeHtml(shift.jobName)}</span>
+          </div>
+          <div class="shift-item-actions">
+            <button type="button" class="btn-chip btn-edit-shift" data-id="${shift.id}">編輯</button>
+            <button type="button" class="btn-chip danger btn-delete-shift" data-id="${shift.id}">刪除</button>
+          </div>
+        </div>
+        <div class="shift-item-details">
+          <span>🕒 ${timeRangeText}</span>
+          <span>☕ 休息 ${shift.breakMinutes} 分鐘</span>
+          <span>💰 時薪 ${formatCurrency(shift.hourlyWage, 0)}</span>
+        </div>
+        <div class="shift-item-pay-row">
+          <span>計薪工時：<strong>${formatMinutesToHoursText(metrics.paidMinutes)}</strong></span>
+          <span class="shift-item-pay">${formatCurrency(metrics.exactPay, 2)}</span>
+        </div>
+      `;
+
+      card.querySelector('.btn-edit-shift').addEventListener('click', () => {
+        startEditShift(shift.id);
+      });
+      card.querySelector('.btn-delete-shift').addEventListener('click', () => {
+        deleteShiftWithUndo(shift.id);
+      });
+
+      listEl.appendChild(card);
+    });
+
+    // 控制「新增同一天的其他班次」按鈕與表單顯示
+    if (state.editingShiftId !== null) {
+      els['btn-add-another-shift'].hidden = true;
+      els['shift-form'].hidden = false;
+    } else {
+      els['shift-form'].hidden = true;
+      els['btn-add-another-shift'].hidden = activeJobs.length === 0;
+    }
+  }
+
+  function getDayShiftsWithDraft(dateStr) {
+    let list = state.shifts.filter((s) => s.date === dateStr);
+    if (state.draftShift && state.draftShift.date === dateStr) {
+      if (state.editingShiftId && state.editingShiftId !== '__NEW__') {
+        list = list.map((s) => (s.id === state.editingShiftId ? state.draftShift : s));
+      } else if (state.editingShiftId === '__NEW__') {
+        list = [...list, state.draftShift];
+      }
+    }
+    return list;
+  }
+
+  // 開始新增班次
+  function startNewShift() {
+    const activeJobs = state.jobs.filter((j) => j.active !== false);
+    if (activeJobs.length === 0) {
+      els['day-no-job-prompt'].hidden = false;
+      return;
+    }
+    state.editingShiftId = '__NEW__';
+    els['shift-form-title'].textContent = '新增班次';
+    els['shift-form-error'].hidden = true;
+
+    populateShiftJobSelect(activeJobs[0].id);
+    applyJobDefaultsToShiftForm(activeJobs[0]);
+    updateDraftShiftAndPreview();
+    renderDayEditorPanel();
+  }
+
+  // 開始編輯既有班次
+  function startEditShift(shiftId) {
+    const shift = state.shifts.find((s) => s.id === shiftId);
+    if (!shift) return;
+
+    state.editingShiftId = shiftId;
+    els['shift-form-title'].textContent = '編輯班次';
+    els['shift-form-error'].hidden = true;
+
+    populateShiftJobSelect(shift.jobId, shift);
+    els['shift-start-time'].value = shift.startTime;
+    els['shift-end-time'].value = shift.endTime;
+    els['shift-next-day'].checked = Boolean(shift.isNextDay);
+    els['shift-break-mins'].value = String(shift.breakMinutes);
+
+    updateDraftShiftAndPreview();
+    renderDayEditorPanel();
+  }
+
+  function populateShiftJobSelect(selectedJobId, existingShift = null) {
+    const select = els['shift-job-select'];
+    select.innerHTML = '';
+
+    const activeJobs = state.jobs.filter((j) => j.active !== false);
+    activeJobs.forEach((job) => {
+      const opt = document.createElement('option');
+      opt.value = job.id;
+      opt.textContent = `${job.name}（NT$ ${job.hourlyWage.toLocaleString('zh-TW')} / 時）`;
+      select.appendChild(opt);
+    });
+
+    // 若編輯的舊班次所屬工作已停用，仍保留該選項供檢視與維持原時薪
+    if (existingShift && !activeJobs.some((j) => j.id === existingShift.jobId)) {
+      const opt = document.createElement('option');
+      opt.value = existingShift.jobId;
+      opt.textContent = `${existingShift.jobName}（已停用｜本班次時薪 NT$ ${existingShift.hourlyWage.toLocaleString('zh-TW')}）`;
+      select.appendChild(opt);
+    }
+
+    select.value = selectedJobId;
+  }
+
+  function applyJobDefaultsToShiftForm(job) {
+    if (!job) return;
+    els['shift-start-time'].value = job.defaultStart || '09:00';
+    els['shift-end-time'].value = job.defaultEnd || '17:00';
+
+    // 若預設下班時間小於等於上班時間，自動勾選隔日下班
+    const startMins = parseTimeToMinutes(els['shift-start-time'].value);
+    const endMins = parseTimeToMinutes(els['shift-end-time'].value);
+    els['shift-next-day'].checked = (startMins !== null && endMins !== null && endMins <= startMins);
+
+    els['shift-break-mins'].value = String(job.defaultBreak ?? 0);
+  }
+
+  function getSelectedShiftJobSnapshot() {
+    const selectedJobId = els['shift-job-select'].value;
+    const existingShift = state.editingShiftId && state.editingShiftId !== '__NEW__'
+      ? state.shifts.find((s) => s.id === state.editingShiftId)
+      : null;
+
+    // 若編輯既有班次且未更換工作，保留該班次建立時的歷史時薪
+    if (existingShift && existingShift.jobId === selectedJobId) {
+      const currentJob = state.jobs.find((j) => j.id === selectedJobId);
+      return {
+        jobId: existingShift.jobId,
+        jobName: currentJob ? currentJob.name : existingShift.jobName,
+        jobColor: currentJob ? currentJob.color : existingShift.jobColor,
+        hourlyWage: existingShift.hourlyWage
+      };
+    }
+
+    const job = state.jobs.find((j) => j.id === selectedJobId);
+    if (job) {
+      return {
+        jobId: job.id,
+        jobName: job.name,
+        jobColor: job.color,
+        hourlyWage: job.hourlyWage
+      };
+    }
+    return null;
+  }
+
+  // 當表單輸入改變時即時更新預覽與右下角月薪摘要
+  function updateDraftShiftAndPreview() {
+    if (!state.selectedDate || !state.editingShiftId) return;
+
+    const jobSnap = getSelectedShiftJobSnapshot();
+    if (!jobSnap) return;
+
+    // 顯示所選工作的識別色與時薪資訊
+    els['shift-job-meta'].innerHTML = `
+      <span class="job-color-dot" style="background:${jobSnap.jobColor}"></span>
+      <span>套用時薪：<strong>${formatCurrency(jobSnap.hourlyWage, 0)} / 時</strong></span>
+    `;
+
+    const startTime = els['shift-start-time'].value;
+    const endTime = els['shift-end-time'].value;
+    const isNextDay = els['shift-next-day'].checked;
+    const breakMinutes = Number(els['shift-break-mins'].value || 0);
+
+    // 跨午夜班次起訖日期提示
+    if (isNextDay) {
+      const nextDate = getNextDateKey(state.selectedDate);
+      els['shift-date-span-info'].textContent = `起訖時間：${state.selectedDate} ${startTime || '--:--'} → ${nextDate} ${endTime || '--:--'}（歸屬於開始日期 ${state.selectedDate.slice(0, 7)} 月份統計）`;
+    } else {
+      els['shift-date-span-info'].textContent = `起訖時間：${state.selectedDate} ${startTime || '--:--'} → ${state.selectedDate} ${endTime || '--:--'}`;
+    }
+
+    const metrics = calculateShiftMetrics(startTime, endTime, isNextDay, breakMinutes, jobSnap.hourlyWage);
+
+    if (!metrics.valid) {
+      els['shift-form-error'].hidden = false;
+      els['shift-form-error'].textContent = metrics.error;
+      els['preview-shift-hours'].textContent = '0 小時 0 分鐘';
+      els['preview-shift-pay'].textContent = 'NT$ 0.00';
+      state.draftShift = null;
+    } else {
+      els['shift-form-error'].hidden = true;
+      els['preview-shift-hours'].textContent = formatMinutesToHoursText(metrics.paidMinutes);
+      els['preview-shift-pay'].textContent = formatCurrency(metrics.exactPay, 2);
+
+      state.draftShift = {
+        id: state.editingShiftId === '__NEW__' ? '__DRAFT__' : state.editingShiftId,
+        date: state.selectedDate,
+        jobId: jobSnap.jobId,
+        jobName: jobSnap.jobName,
+        jobColor: jobSnap.jobColor,
+        hourlyWage: jobSnap.hourlyWage,
+        startTime,
+        endTime,
+        isNextDay,
+        breakMinutes
+      };
+    }
+
+    // 同步檢查當日重疊與即時更新右下角月薪資摘要
+    const previewDayShifts = getDayShiftsWithDraft(state.selectedDate);
+    const overlaps = detectOverlappingShifts(previewDayShifts);
+    if (overlaps.length > 0) {
+      els['overlap-warning'].hidden = false;
+      els['overlap-warning-text'].textContent = `提醒：班次時間重疊（${overlaps.join('；')}），請確認排班是否正確。`;
+    } else {
+      els['overlap-warning'].hidden = true;
+    }
+
+    renderSalarySummary();
+  }
+
+  function handleSaveShiftForm(e) {
+    e.preventDefault();
+    const jobSnap = getSelectedShiftJobSnapshot();
+    if (!jobSnap) {
+      els['shift-form-error'].hidden = false;
+      els['shift-form-error'].textContent = '請先選擇一份工作。';
+      return;
+    }
+
+    const startTime = els['shift-start-time'].value;
+    const endTime = els['shift-end-time'].value;
+    const isNextDay = els['shift-next-day'].checked;
+    const breakMinutes = Number(els['shift-break-mins'].value || 0);
+
+    const metrics = calculateShiftMetrics(startTime, endTime, isNextDay, breakMinutes, jobSnap.hourlyWage);
+    if (!metrics.valid) {
+      els['shift-form-error'].hidden = false;
+      els['shift-form-error'].textContent = metrics.error;
+      return;
+    }
+
+    if (state.editingShiftId === '__NEW__') {
+      const newShift = {
+        id: 'shift_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        date: state.selectedDate,
+        jobId: jobSnap.jobId,
+        jobName: jobSnap.jobName,
+        jobColor: jobSnap.jobColor,
+        hourlyWage: jobSnap.hourlyWage,
+        startTime,
+        endTime,
+        isNextDay,
+        breakMinutes,
+        updatedAt: new Date().toISOString()
+      };
+      state.shifts.push(newShift);
+      showToast(`已新增「${jobSnap.jobName}」班次！`);
+    } else {
+      const idx = state.shifts.findIndex((s) => s.id === state.editingShiftId);
+      if (idx !== -1) {
+        state.shifts[idx] = {
+          ...state.shifts[idx],
+          jobId: jobSnap.jobId,
+          jobName: jobSnap.jobName,
+          jobColor: jobSnap.jobColor,
+          hourlyWage: jobSnap.hourlyWage,
+          startTime,
+          endTime,
+          isNextDay,
+          breakMinutes,
+          updatedAt: new Date().toISOString()
+        };
+        showToast(`已更新「${jobSnap.jobName}」班次！`);
+      }
+    }
+
+    state.editingShiftId = null;
+    state.draftShift = null;
+    els['chk-has-work'].dataset.manualChecked = 'true';
+    saveToStorage();
+    renderAll();
+  }
+
+  function handleCancelShiftForm() {
+    state.editingShiftId = null;
+    state.draftShift = null;
+    const dayShifts = state.shifts.filter((s) => s.date === state.selectedDate);
+    if (dayShifts.length === 0) {
+      els['chk-has-work'].dataset.manualChecked = 'false';
+    }
+    renderAll();
+  }
+
+  function deleteShiftWithUndo(shiftId) {
+    const idx = state.shifts.findIndex((s) => s.id === shiftId);
+    if (idx === -1) return;
+    const removed = state.shifts[idx];
+    state.lastDeletedShift = removed;
+    state.shifts.splice(idx, 1);
+
+    if (state.editingShiftId === shiftId) {
+      state.editingShiftId = null;
+      state.draftShift = null;
+    }
+
+    const remaining = state.shifts.filter((s) => s.date === state.selectedDate);
+    if (remaining.length === 0) {
+      els['chk-has-work'].dataset.manualChecked = 'false';
+    }
+
+    saveToStorage();
+    renderAll();
+
+    showToast(`已刪除「${removed.jobName}」(${removed.startTime}–${removed.endTime}) 班次`, {
+      undoText: '復原',
+      onUndo: () => {
+        if (state.lastDeletedShift) {
+          state.shifts.push(state.lastDeletedShift);
+          state.lastDeletedShift = null;
+          saveToStorage();
+          renderAll();
+          showToast('已復原刪除的班次！');
+        }
+      }
+    });
+  }
+
+  // ==================== 當月薪資摘要計算與渲染 ====================
+
+  function renderSalarySummary() {
+    const year = state.selectedYear;
+    const month = state.selectedMonth;
+    els['summary-month-label'].textContent = `${year} 年 ${month} 月`;
+
+    // 是否處於編輯即時預覽狀態
+    const isPreviewing = Boolean(state.editingShiftId !== null && state.draftShift !== null);
+    els['summary-preview-indicator'].hidden = !isPreviewing;
+
+    // 取得當月所有班次（含即時預覽草稿）
+    const monthShifts = getMonthShifts(year, month, true);
+
+    let totalPaidMinutes = 0;
+    let totalExactSalary = 0;
+    const uniqueWorkDays = new Set();
+    const jobBreakdownMap = new Map();
+
+    monthShifts.forEach((shift) => {
+      const m = calculateShiftMetrics(shift.startTime, shift.endTime, shift.isNextDay, shift.breakMinutes, shift.hourlyWage);
+      if (!m.valid) return;
+
+      totalPaidMinutes += m.paidMinutes;
+      totalExactSalary += m.exactPay;
+      uniqueWorkDays.add(shift.date);
+
+      const key = shift.jobId || shift.jobName;
+      if (!jobBreakdownMap.has(key)) {
+        // 優先顯示最新工作名稱與顏色
+        const latestJob = state.jobs.find((j) => j.id === shift.jobId);
+        jobBreakdownMap.set(key, {
+          jobId: key,
+          name: latestJob ? latestJob.name : shift.jobName,
+          color: latestJob ? latestJob.color : shift.jobColor,
+          paidMinutes: 0,
+          exactPay: 0,
+          shiftCount: 0
+        });
+      }
+      const entry = jobBreakdownMap.get(key);
+      entry.paidMinutes += m.paidMinutes;
+      entry.exactPay += m.exactPay;
+      entry.shiftCount += 1;
+    });
+
+    // 總計於加總後統一四捨五入（並同時提供小數點後兩位明細）
+    const roundedTotal = Math.round(totalExactSalary);
+    els['summary-total-amount'].textContent = `${formatIntegerCurrency(roundedTotal)}（${formatCurrency(totalExactSalary, 2)}）`;
+    els['summary-total-hours'].textContent = formatMinutesToHoursText(totalPaidMinutes);
+    els['summary-work-days'].textContent = `${uniqueWorkDays.size} 天`;
+
+    // 渲染各工作小計
+    const breakdownContainer = els['summary-job-breakdown'];
+    breakdownContainer.innerHTML = '';
+
+    if (jobBreakdownMap.size === 0) {
+      const emptyEl = document.createElement('div');
+      emptyEl.className = 'summary-disclaimer';
+      emptyEl.textContent = '本月尚無排班紀錄。';
+      breakdownContainer.appendChild(emptyEl);
+    } else {
+      Array.from(jobBreakdownMap.values())
+        .sort((a, b) => b.exactPay - a.exactPay)
+        .forEach((item) => {
+          const row = document.createElement('div');
+          row.className = 'breakdown-item';
+          row.setAttribute('role', 'listitem');
+          row.innerHTML = `
+            <div class="breakdown-job-info">
+              <span class="job-color-dot" style="background:${item.color}"></span>
+              <span class="breakdown-job-name">${escapeHtml(item.name)}（${item.shiftCount} 班）</span>
+            </div>
+            <div class="breakdown-job-stats">
+              <span class="breakdown-pay">${formatCurrency(item.exactPay, 2)}</span>
+              <span class="breakdown-hours">${formatMinutesToHoursText(item.paidMinutes)}</span>
+            </div>
+          `;
+          breakdownContainer.appendChild(row);
+        });
+    }
+  }
+
+  // ==================== 工作管理 Modal ====================
+
+  function initColorPicker() {
+    const container = els['job-color-picker'];
+    container.innerHTML = '';
+    JOB_COLORS.forEach((c) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'color-swatch' + (c.hex === state.selectedJobColor ? ' is-selected' : '');
+      btn.style.backgroundColor = c.hex;
+      btn.setAttribute('role', 'radio');
+      btn.setAttribute('aria-checked', String(c.hex === state.selectedJobColor));
+      btn.setAttribute('aria-label', c.name);
+      btn.title = c.name;
+      btn.textContent = c.hex === state.selectedJobColor ? '✓' : '';
+
+      btn.addEventListener('click', () => {
+        state.selectedJobColor = c.hex;
+        initColorPicker();
+      });
+
+      container.appendChild(btn);
+    });
+  }
+
+  function openJobsModal(editJobId = null) {
+    els['jobs-modal-backdrop'].hidden = false;
+    renderModalJobsList();
+
+    if (editJobId === '__NEW__' || state.jobs.length === 0) {
+      showJobForm(null);
+    } else if (editJobId) {
+      const target = state.jobs.find((j) => j.id === editJobId);
+      if (target) showJobForm(target);
+    } else {
+      els['job-form'].hidden = true;
+      els['btn-show-job-form'].hidden = false;
+    }
+  }
+
+  function closeJobsModal() {
+    els['jobs-modal-backdrop'].hidden = true;
+    state.editingJobId = null;
+  }
+
+  function renderModalJobsList() {
+    const listEl = els['modal-jobs-list'];
+    listEl.innerHTML = '';
+
+    if (state.jobs.length === 0) {
+      const p = document.createElement('p');
+      p.className = 'modal-subtitle';
+      p.textContent = '目前還沒有建立任何工作，請在下方輸入工作名稱與時薪！';
+      listEl.appendChild(p);
+      return;
+    }
+
+    state.jobs.forEach((job) => {
+      const card = document.createElement('div');
+      card.className = 'job-card' + (job.active === false ? ' is-disabled' : '');
+      card.style.borderLeftColor = job.color;
+      card.setAttribute('role', 'listitem');
+
+      const defaultTimeText = (job.defaultStart && job.defaultEnd)
+        ? `預設時間：${job.defaultStart}–${job.defaultEnd}（休息 ${job.defaultBreak || 0} 分）`
+        : '未設定預設班表時間';
+
+      card.innerHTML = `
+        <div class="job-card-info">
+          <div class="job-card-title-row">
+            <span class="job-color-dot" style="background:${job.color}"></span>
+            <span class="job-card-name">${escapeHtml(job.name)}</span>
+            ${job.active === false ? '<span class="status-tag">已停用</span>' : ''}
+          </div>
+          <div class="job-card-meta">
+            時薪：<strong>${formatCurrency(job.hourlyWage, 0)}</strong> ｜ ${defaultTimeText}
+          </div>
+        </div>
+        <div class="job-card-actions">
+          <button type="button" class="btn-chip btn-edit-job">編輯</button>
+          <button type="button" class="btn-chip btn-toggle-job">${job.active === false ? '重新啟用' : '停用'}</button>
+        </div>
+      `;
+
+      card.querySelector('.btn-edit-job').addEventListener('click', () => {
+        showJobForm(job);
+      });
+
+      card.querySelector('.btn-toggle-job').addEventListener('click', () => {
+        job.active = job.active === false ? true : false;
+        saveToStorage();
+        renderModalJobsList();
+        renderAll();
+        showToast(job.active ? `已重新啟用「${job.name}」` : `已停用「${job.name}」（歷史班表與薪資均完整保留）`);
+      });
+
+      listEl.appendChild(card);
+    });
+  }
+
+  function showJobForm(job = null) {
+    els['job-form'].hidden = false;
+    els['btn-show-job-form'].hidden = true;
+    els['job-form-error'].hidden = true;
+
+    if (job) {
+      state.editingJobId = job.id;
+      els['job-form-title'].textContent = `編輯工作：${job.name}`;
+      els['job-name-input'].value = job.name;
+      els['job-wage-input'].value = String(job.hourlyWage);
+      state.selectedJobColor = job.color || JOB_COLORS[0].hex;
+      els['job-default-start'].value = job.defaultStart || '';
+      els['job-default-end'].value = job.defaultEnd || '';
+      els['job-default-break'].value = job.defaultBreak ? String(job.defaultBreak) : '';
+    } else {
+      state.editingJobId = null;
+      els['job-form-title'].textContent = '新增工作';
+      els['job-name-input'].value = '';
+      els['job-wage-input'].value = '';
+      const usedColors = new Set(state.jobs.map((j) => j.color));
+      const unused = JOB_COLORS.find((c) => !usedColors.has(c.hex));
+      state.selectedJobColor = unused ? unused.hex : JOB_COLORS[state.jobs.length % JOB_COLORS.length].hex;
+      els['job-default-start'].value = '';
+      els['job-default-end'].value = '';
+      els['job-default-break'].value = '';
+    }
+
+    initColorPicker();
+    els['job-name-input'].focus();
+  }
+
+  function handleSaveJobForm(e) {
+    e.preventDefault();
+    const name = els['job-name-input'].value.trim();
+    const wageRaw = els['job-wage-input'].value.trim();
+    const wage = Number(wageRaw);
+    const defaultStart = els['job-default-start'].value;
+    const defaultEnd = els['job-default-end'].value;
+    const defaultBreakRaw = els['job-default-break'].value.trim();
+    const defaultBreak = defaultBreakRaw === '' ? 0 : Number(defaultBreakRaw);
+
+    if (!name) {
+      els['job-form-error'].hidden = false;
+      els['job-form-error'].textContent = '請輸入工作名稱（必填）。';
+      els['job-name-input'].focus();
+      return;
+    }
+
+    if (!wageRaw || isNaN(wage) || wage <= 0) {
+      els['job-form-error'].hidden = false;
+      els['job-form-error'].textContent = '時薪為必填，且只能輸入大於 0 的數字。';
+      els['job-wage-input'].focus();
+      return;
+    }
+
+    if (isNaN(defaultBreak) || defaultBreak < 0 || !Number.isInteger(defaultBreak)) {
+      els['job-form-error'].hidden = false;
+      els['job-form-error'].textContent = '預設休息分鐘數需為 0 以上的整數。';
+      return;
+    }
+
+    if (state.editingJobId) {
+      const idx = state.jobs.findIndex((j) => j.id === state.editingJobId);
+      if (idx !== -1) {
+        const oldJob = state.jobs[idx];
+        state.jobs[idx] = {
+          ...oldJob,
+          name,
+          hourlyWage: wage,
+          color: state.selectedJobColor,
+          defaultStart,
+          defaultEnd,
+          defaultBreak
+        };
+        // 同步更新歷史班次顯示的工作名稱與識別色，但嚴格保留歷史班次原本的 hourlyWage！
+        state.shifts.forEach((s) => {
+          if (s.jobId === oldJob.id) {
+            s.jobName = name;
+            s.jobColor = state.selectedJobColor;
+          }
+        });
+        showToast(`已儲存「${name}」設定（已建立的歷史班次保留原時薪）`);
+      }
+    } else {
+      const newJob = {
+        id: 'job_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        name,
+        hourlyWage: wage,
+        color: state.selectedJobColor,
+        defaultStart,
+        defaultEnd,
+        defaultBreak,
+        active: true,
+        createdAt: new Date().toISOString()
+      };
+      state.jobs.push(newJob);
+      showToast(`已新增工作「${name}」！現在可以點選月曆日期開始排班。`);
+    }
+
+    saveToStorage();
+    els['job-form'].hidden = true;
+    els['btn-show-job-form'].hidden = false;
+    state.editingJobId = null;
+    renderModalJobsList();
+    renderAll();
+  }
+
+  // ==================== JSON 備份匯出與匯入 ====================
+
+  function handleExportJson() {
+    const payload = {
+      appName: '打工薪資小幫手',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      jobs: state.jobs,
+      shifts: state.shifts
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateTag = formatDateKey(TODAY_YEAR, TODAY_MONTH, TODAY_DAY);
+    a.href = url;
+    a.download = `打工薪資小幫手_備份_${dateTag}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('已匯出 JSON 備份檔案！');
+  }
+
+  function validateBackupPayload(data) {
+    if (!data || typeof data !== 'object') {
+      return '檔案內容不是有效的 JSON 物件。';
+    }
+    if (!Array.isArray(data.jobs) || !Array.isArray(data.shifts)) {
+      return '備份檔缺少 jobs 或 shifts 陣列欄位。';
+    }
+    for (const j of data.jobs) {
+      if (!j || typeof j.id !== 'string' || typeof j.name !== 'string' || typeof j.hourlyWage !== 'number' || j.hourlyWage <= 0) {
+        return '工作項目資料格式有誤（需包含有效名稱與大於 0 的時薪）。';
+      }
+    }
+    for (const s of data.shifts) {
+      if (!s || typeof s.id !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s.date) || typeof s.hourlyWage !== 'number') {
+        return '班次紀錄格式有誤（需包含有效日期 YYYY-MM-DD 與時薪）。';
+      }
+    }
+    return null;
+  }
+
+  function handleImportJsonFile(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    els['import-error-msg'].hidden = true;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result));
+        const errMsg = validateBackupPayload(parsed);
+        if (errMsg) {
+          els['import-error-msg'].hidden = false;
+          els['import-error-msg'].textContent = `匯入驗證失敗：${errMsg}`;
+          return;
+        }
+
+        const applyImport = () => {
+          state.jobs = parsed.jobs;
+          state.shifts = parsed.shifts;
+          state.editingShiftId = null;
+          state.draftShift = null;
+          saveToStorage();
+          els['backup-modal-backdrop'].hidden = true;
+          renderAll();
+          showToast(`成功匯入 ${parsed.jobs.length} 份工作與 ${parsed.shifts.length} 筆班次！`);
+        };
+
+        if (state.jobs.length > 0 || state.shifts.length > 0) {
+          openConfirmModal(
+            '確認覆蓋既有資料',
+            `匯入備份將會覆蓋目前瀏覽器中的 ${state.jobs.length} 份工作與 ${state.shifts.length} 筆班次紀錄。確定要繼續嗎？`,
+            applyImport
+          );
+        } else {
+          applyImport();
+        }
+      } catch (err) {
+        els['import-error-msg'].hidden = false;
+        els['import-error-msg'].textContent = '無法解析 JSON 檔案，請確認檔案格式是否正確。';
+      } finally {
+        e.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // ==================== 確認視窗與 Toast ====================
+
+  function openConfirmModal(title, desc, onConfirm) {
+    els['confirm-modal-title'].textContent = title;
+    els['confirm-modal-desc'].textContent = desc;
+    state.confirmCallback = onConfirm;
+    els['confirm-modal-backdrop'].hidden = false;
+  }
+
+  function closeConfirmModal() {
+    els['confirm-modal-backdrop'].hidden = true;
+    state.confirmCallback = null;
+  }
+
+  function showToast(message, options = {}) {
+    const container = els['toast-container'];
+    const toast = document.createElement('div');
+    toast.className = 'toast-item';
+
+    const span = document.createElement('span');
+    span.textContent = message;
+    toast.appendChild(span);
+
+    if (options.undoText && typeof options.onUndo === 'function') {
+      const undoBtn = document.createElement('button');
+      undoBtn.type = 'button';
+      undoBtn.className = 'btn-undo';
+      undoBtn.textContent = options.undoText;
+      undoBtn.addEventListener('click', () => {
+        options.onUndo();
+        toast.remove();
+      });
+      toast.appendChild(undoBtn);
+    }
+
+    container.appendChild(toast);
+    setTimeout(() => {
+      if (toast.parentNode) toast.remove();
+    }, options.undoText ? 6500 : 3200);
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ==================== 事件綁定 ====================
+
+  function bindEvents() {
+    // 年份與月份選擇器
+    els['select-year'].addEventListener('change', (e) => {
+      state.selectedYear = Number(e.target.value);
+      renderAll();
+    });
+
+    els['select-month'].addEventListener('change', (e) => {
+      state.selectedMonth = Number(e.target.value);
+      renderAll();
+    });
+
+    els['btn-prev-month'].addEventListener('click', () => {
+      if (state.selectedMonth === 1) {
+        state.selectedYear -= 1;
+        state.selectedMonth = 12;
+      } else {
+        state.selectedMonth -= 1;
+      }
+      renderAll();
+    });
+
+    els['btn-current-month'].addEventListener('click', () => {
+      state.selectedYear = TODAY_YEAR;
+      state.selectedMonth = TODAY_MONTH;
+      renderAll();
+    });
+
+    els['btn-next-month'].addEventListener('click', () => {
+      if (state.selectedMonth === 12) {
+        state.selectedYear += 1;
+        state.selectedMonth = 1;
+      } else {
+        state.selectedMonth += 1;
+      }
+      renderAll();
+    });
+
+    // 開關工作管理 Modal
+    els['btn-open-jobs'].addEventListener('click', () => openJobsModal());
+    els['btn-onboarding-add-job'].addEventListener('click', () => openJobsModal('__NEW__'));
+    els['btn-strip-add-job'].addEventListener('click', () => openJobsModal('__NEW__'));
+    els['btn-strip-manage-jobs'].addEventListener('click', () => openJobsModal());
+    els['btn-panel-create-job'].addEventListener('click', () => openJobsModal('__NEW__'));
+    els['btn-close-jobs-modal'].addEventListener('click', closeJobsModal);
+
+    els['btn-show-job-form'].addEventListener('click', () => showJobForm(null));
+    els['btn-cancel-job-form'].addEventListener('click', () => {
+      els['job-form'].hidden = true;
+      els['btn-show-job-form'].hidden = false;
+      state.editingJobId = null;
+    });
+    els['job-form'].addEventListener('submit', handleSaveJobForm);
+
+    // 每日排班面板
+    els['btn-close-day-panel'].addEventListener('click', closeDayPanel);
+    els['day-panel-backdrop'].addEventListener('click', closeDayPanel);
+
+    // 「這天有上班」勾選切換（若該日已有班次，取消勾選前先提示確認再清除）
+    els['chk-has-work'].addEventListener('change', (e) => {
+      const checked = e.target.checked;
+      const dateStr = state.selectedDate;
+      if (!dateStr) return;
+
+      const dayShifts = state.shifts.filter((s) => s.date === dateStr);
+
+      if (!checked && dayShifts.length > 0) {
+        // 先還原勾選狀態，待使用者確認後再清除
+        e.target.checked = true;
+        openConfirmModal(
+          '確定清除當日所有班次？',
+          `${formatFullDateWithWeekday(dateStr)} 目前已有 ${dayShifts.length} 筆班次紀錄。取消勾選「這天有上班」將會清除當日所有班次，確定要清除嗎？`,
+          () => {
+            state.shifts = state.shifts.filter((s) => s.date !== dateStr);
+            state.editingShiftId = null;
+            state.draftShift = null;
+            els['chk-has-work'].dataset.manualChecked = 'false';
+            saveToStorage();
+            renderAll();
+            showToast('已清除當日班次紀錄');
+          }
+        );
+        return;
+      }
+
+      els['chk-has-work'].dataset.manualChecked = checked ? 'true' : 'false';
+      if (checked && dayShifts.length === 0) {
+        startNewShift();
+      } else if (!checked) {
+        state.editingShiftId = null;
+        state.draftShift = null;
+        renderAll();
+      } else {
+        renderDayEditorPanel();
+      }
+    });
+
+    els['btn-add-another-shift'].addEventListener('click', startNewShift);
+
+    // 班次表單欄位變更即時預覽
+    els['shift-job-select'].addEventListener('change', () => {
+      // 新增班次時切換工作，自動帶入該工作的預設時間與時薪
+      if (state.editingShiftId === '__NEW__') {
+        const job = state.jobs.find((j) => j.id === els['shift-job-select'].value);
+        if (job) applyJobDefaultsToShiftForm(job);
+      }
+      updateDraftShiftAndPreview();
+    });
+
+    ['shift-start-time', 'shift-end-time', 'shift-next-day', 'shift-break-mins'].forEach((id) => {
+      els[id].addEventListener('input', updateDraftShiftAndPreview);
+      els[id].addEventListener('change', updateDraftShiftAndPreview);
+    });
+
+    els['shift-form'].addEventListener('submit', handleSaveShiftForm);
+    els['btn-cancel-shift'].addEventListener('click', handleCancelShiftForm);
+
+    // 展開/收合薪資摘要明細
+    els['btn-toggle-summary-detail'].addEventListener('click', () => {
+      const drawer = els['summary-detail-drawer'];
+      const expanded = !drawer.hidden;
+      drawer.hidden = expanded;
+      els['btn-toggle-summary-detail'].setAttribute('aria-expanded', String(!expanded));
+      els['toggle-detail-text'].textContent = expanded ? '展開明細' : '收合明細';
+    });
+
+    // 資料備份 Modal
+    els['btn-open-backup'].addEventListener('click', () => {
+      els['import-error-msg'].hidden = true;
+      els['backup-modal-backdrop'].hidden = false;
+    });
+    els['btn-close-backup-modal'].addEventListener('click', () => {
+      els['backup-modal-backdrop'].hidden = true;
+    });
+    els['btn-export-json'].addEventListener('click', handleExportJson);
+    els['input-import-json'].addEventListener('change', handleImportJsonFile);
+
+    // 確認對話框
+    els['btn-confirm-cancel'].addEventListener('click', closeConfirmModal);
+    els['btn-confirm-ok'].addEventListener('click', () => {
+      const fn = state.confirmCallback;
+      closeConfirmModal();
+      if (typeof fn === 'function') fn();
+    });
+
+    // 鍵盤 Escape 支援
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (!els['confirm-modal-backdrop'].hidden) {
+          closeConfirmModal();
+        } else if (!els['jobs-modal-backdrop'].hidden) {
+          closeJobsModal();
+        } else if (!els['backup-modal-backdrop'].hidden) {
+          els['backup-modal-backdrop'].hidden = true;
+        } else if (state.selectedDate) {
+          closeDayPanel();
+        }
+      }
+    });
+
+    // 視窗尺寸改變時重新渲染月曆顯示筆數
+    window.addEventListener('resize', () => {
+      renderCalendar();
+    });
+  }
+
+  // ==================== 啟動應用 ====================
+
+  function init() {
+    initDomRefs();
+    loadFromStorage();
+    initYearMonthSelectors();
+    initColorPicker();
+    bindEvents();
+    renderAll();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+
+</script>
+</body>
+</html>
